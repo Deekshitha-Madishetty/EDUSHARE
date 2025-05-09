@@ -1,0 +1,45 @@
+{# templates/past_books.html #}
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">{{ title }}</h2>
+
+    {% if transactions %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Title</th>
+                        <th scope="col">Author</th>
+                        <th scope="col">Original Owner</th>
+                        <th scope="col">Recipient/Requester</th>
+                        <th scope="col">Type</th>
+                        <th scope="col">Date Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trans_data in transactions %}
+                    <tr>
+                        <td><a href="{{ url_for('book_detail', book_id=trans_data.book_id) }}">{{ trans_data.title }}</a></td>
+                        <td>{{ trans_data.author }}</td>
+                        <td>{{ trans_data.original_owner_username }}</td>
+                        <td>{{ trans_data.requester_username }}</td>
+                        <td>{{ trans_data.transaction_type }}</td>
+                        <td>{{ trans_data.completed_date.strftime('%Y-%m-%d %H:%M') if trans_data.completed_date else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">No books have been marked as sold or donated yet.</p>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Back to Home</a>
+    </div>
+</div>
+{% endblock %}

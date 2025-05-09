@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ title | default('Add/Donate Book') }}{% endblock %} {# Use title passed from route #}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {# Use legend passed from route, default to Add if not present #}
+            <h2 class="mb-4">{{ legend | default('Add a Book for Sale or Donation') }}</h2>
+
+            {# The form action is empty ("") - it will submit to the current URL #}
+            {# This works for both the /add_book route and the /book/<id>/edit route #}
+            <form method="POST" action="" novalidate>
+                {{ form.hidden_tag() }} {# IMPORTANT: CSRF Protection #}
+
+                {# --- Title --- #}
+                <div class="mb-3">
+                    {{ form.title.label(class="form-label") }}
+                    {% if form.title.errors %}
+                        {{ form.title(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.title.errors %} <span>{{ error }}</span> {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.title(class="form-control") }}
+                    {% endif %}
+                </div>
+
+                {# --- Author --- #}
+                <div class="mb-3">
+                    {{ form.author.label(class="form-label") }}
+                    {% if form.author.errors %}
+                        {{ form.author(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.author.errors %} <span>{{ error }}</span> {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.author(class="form-control") }}
+                    {% endif %}
+                </div>
+
+                {# --- Description --- #}
+                 <div class="mb-3">
+                    {{ form.description.label(class="form-label") }}
+                    {# Add the class for CSS styling to preserve line breaks on display #}
+                    {{ form.description(class="form-control book-description", rows=4) }} {# Increased rows slightly #}
+                    {# Note: No validation errors shown here by default for TextArea, add if needed #}
+                 </div>
+
+                {# --- Price --- #}
+                 <div class="mb-3">
+                    {{ form.price.label(class="form-label") }}
+                     {% if form.price.errors %}
+                        {{ form.price(class="form-control is-invalid", step="0.01", type="number") }} {# Ensure type=number for step #}
+                        <div class="invalid-feedback">
+                            {% for error in form.price.errors %} <span>{{ error }}</span> {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.price(class="form-control", step="0.01", type="number", placeholder="e.g., 15.00 - leave blank or 0 for donation") }}
+                    {% endif %}
+                 </div>
+
+                {# --- Donation Checkbox --- #}
+                <div class="mb-3 form-check">
+                    {{ form.is_donation(class="form-check-input") }}
+                    {{ form.is_donation.label(class="form-check-label") }}
+                </div>
+
+                {# --- Submit Button --- #}
+                <div class="d-grid gap-2 mt-4"> {# Added margin-top #}
+                    {# Change button text based on context (Add Book or Update Book Details) #}
+                    <button type="submit" class="btn btn-success btn-lg">{{ legend | default('Add Book') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

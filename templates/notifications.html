@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Your Notifications</h2>
+
+    {% if notifications_data %}
+        <div class="list-group">
+            {% for item in notifications_data %}
+                {% set notification = item.notification %}
+                {% set transaction = item.transaction %}
+                {% set book = item.book %} {# Get book from data passed by route #}
+
+                <div class="list-group-item list-group-item-action flex-column align-items-start {% if not notification.is_read %}list-group-item-info{% endif %} mb-2 shadow-sm rounded">
+                    <div class="d-flex w-100 justify-content-between">
+                        {# Main Notification Message #}
+                        <div class="mb-1 flex-grow-1 me-3"> {# Allow message area to grow #}
+                            <p class="mb-1"><strong>{{ notification.message | safe }}</strong></p>
+                            <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+
+                            {# Transaction Details and Actions (if applicable) #}
+                            {% if transaction %}
+                                <div class="mt-3 p-3 border rounded bg-light-subtle">
+                                    <h6 class="mb-2 border-bottom pb-1">Related Transaction:
+                                        {% if book %}
+                                            <a href="{{ url_for('book_detail', book_id=book.id) }}" class="fw-normal text-decoration-none">"{{ book.title }}"</a>
+                                        {% else %}
+                                            Book ID {{ transaction.book_id }}
+                                        {% endif %}
+                                    </h6>
+
+                                    {# ======================================== #}
+                                    {# == OWNER ACTIONS FOR PENDING REQUESTS == #}
+                                    {# ======================================== #}
+                                    {% if transaction.status == 'pending' and transaction.owner_id == current_user.id %}
+                                        <p class="small mb-2">Action required for request from: <strong>{{ transaction.requester.username }}</strong></p>
+                                        {# --- Form to Accept and Provide Contact Info --- #}
+                                        <form action="{{ url_for('accept_transaction', transaction_id=transaction.id) }}" method="POST" class="mb-2">
+                                            <div class="mb-2">
+                                                <label for="contact_info_{{ transaction.id }}" class="form-label fw-bold small mb-0">Contact Info to Share with Requester:</label>
+                                                <input type="text"
+                                                       name="contact_info"
+                                                       id="contact_info_{{ transaction.id }}"
+                                                       class="form-control form-control-sm"
+                                                       value="{{ current_user.phone_number or '' }}" {# Pre-fill with profile phone #}
+                                                       placeholder="e.g., Your phone or email"
+                                                       required
+                                                       aria-describedby="contactHelp_{{ transaction.id }}">
+                                                <div id="contactHelp_{{ transaction.id }}" class="form-text small">This will be shared only with the requester upon acceptance.</div>
+                                            </div>
+                                            <button type="submit" class="btn btn-success btn-sm me-1">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Accept & Share Contact
+                                            </button>
+
+                                            {# --- Reject Button (Triggers Modal) --- #}
+                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectConfirmModal_{{ transaction.id }}">
+                                                <i class="bi bi-x-octagon-fill me-1"></i>Reject
+                                            </button>
+                                        </form>
+
+                                        <!-- Rejection Confirmation Modal -->
+                                        <div class="modal fade" id="rejectConfirmModal_{{ transaction.id }}" tabindex="-1" aria-labelledby="rejectModalLabel_{{ transaction.id }}" aria-hidden="true">
+                                          <div class="modal-dialog">
+                                            <div class="modal-content">
+                                              <div class="modal-header">
+                                                <h5 class="modal-title fs-5" id="rejectModalLabel_{{ transaction.id }}">Confirm Rejection</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                              </div>
+                                              <div class="modal-body">
+                                                Are you sure you want to reject the request for "{{ book.title if book else 'this book' }}" from <strong>{{ transaction.requester.username }}</strong>?
+                                              </div>
+                                              <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{{ url_for('reject_transaction', transaction_id=transaction.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-danger">Confirm Reject</button>
+                                                </form>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {# End Rejection Modal #}
+                                    {% endif %} {# End Owner Actions for Pending #}
+
+
+                                    {# ======================================= #}
+                                    {# == OWNER ACTIONS FOR ACCEPTED REQUESTS == #}
+                                    {# ======================================= #}
+                                    {% if transaction.status == 'accepted' and transaction.owner_id == current_user.id %}
+                                        <p class="small mb-2">You accepted this request from <strong>{{ transaction.requester.username }}</strong>. Contact info shared: <code class="user-select-all">{{ transaction.seller_contact_info }}</code></p>
+                                        {# --- Form to Mark as Complete --- #}
+                                        <form action="{{ url_for('complete_transaction', transaction_id=transaction.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-primary btn-sm">
+                                               <i class="bi bi-check-square-fill me-1"></i>Mark as Complete (Exchange Done)
+                                            </button>
+                                        </form>
+                                    {% endif %} {# End Owner Actions for Accepted #}
+
+
+                                    {# ========================================== #}
+                                    {# == REQUESTER ACTIONS FOR PENDING REQUESTS == #}
+                                    {# ========================================== #}
+                                    {% if transaction.status == 'pending' and transaction.requester_id == current_user.id %}
+                                        <p class="small mb-1">Your request is pending approval by <strong>{{ transaction.book_owner.username }}</strong>.</p>
+                                        {# --- Form to Cancel Request --- #}
+                                        <form action="{{ url_for('cancel_transaction', transaction_id=transaction.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-warning btn-sm">
+                                                <i class="bi bi-x-circle-fill me-1"></i>Cancel My Request
+                                            </button>
+                                        </form>
+                                    {% endif %} {# End Requester Actions for Pending #}
+
+
+                                    {# ======================================== #}
+                                    {# == REQUESTER INFO FOR ACCEPTED REQUESTS == #}
+                                    {# ======================================== #}
+                                    {% if transaction.status == 'accepted' and transaction.requester_id == current_user.id %}
+                                        <div class="alert alert-success small mt-2 p-2 mb-0">
+                                            <i class="bi bi-info-circle-fill me-1"></i> Request accepted by <strong>{{ transaction.book_owner.username }}</strong>!
+                                            {% if transaction.seller_contact_info %}
+                                                Please contact them at: <strong class="user-select-all">{{ transaction.seller_contact_info }}</strong> to arrange the exchange.
+                                            {% else %}
+                                                The owner accepted but did not provide specific contact info. You may need to coordinate through other means.
+                                            {% endif %}
+                                        </div>
+                                    {% endif %} {# End Requester Info for Accepted #}
+
+
+                                    {# =================================== #}
+                                    {# == DISPLAY FINAL TRANSACTION STATE == #}
+                                    {# =================================== #}
+                                     {% if transaction.status == 'completed' %}
+                                        <span class="badge text-bg-success fs-6 mt-2"><i class="bi bi-check-all me-1"></i>Completed</span>
+                                        <span class="ms-2 fst-italic small text-muted">on {{ transaction.completion_timestamp.strftime('%Y-%m-%d') if transaction.completion_timestamp else '' }}</span>
+                                     {% elif transaction.status == 'rejected' %}
+                                        <span class="badge text-bg-danger fs-6 mt-2"><i class="bi bi-x-octagon me-1"></i>Rejected</span>
+                                        <span class="ms-2 fst-italic small text-muted">on {{ transaction.action_timestamp.strftime('%Y-%m-%d') if transaction.action_timestamp else '' }}</span>
+                                     {% elif transaction.status == 'cancelled' %}
+                                        <span class="badge text-bg-secondary fs-6 mt-2"><i class="bi bi-x-circle me-1"></i>Cancelled</span>
+                                        <span class="ms-2 fst-italic small text-muted">on {{ transaction.action_timestamp.strftime('%Y-%m-%d') if transaction.action_timestamp else '' }}</span>
+                                     {% endif %}
+
+                                </div> {# End transaction details box #}
+                            {% endif %} {# End if item.transaction #}
+                        </div>{# End Message area #}
+
+                        {# Mark as Read Button/Indicator #}
+                        <div class="ms-3 text-nowrap"> {# Prevent wrapping #}
+                            {% if not notification.is_read %}
+                                <form action="{{ url_for('mark_notification_read', notification_id=notification.id) }}" method="POST" class="d-inline" title="Mark as read">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary border-0">
+                                         <i class="bi bi-check-lg fs-5"></i>
+                                         <span class="visually-hidden">Mark as read</span>
+                                    </button>
+                                </form>
+                            {% else %}
+                                 <span class="badge bg-light text-dark ms-3 border" title="Read"><i class="bi bi-check-all"></i> Read</span>
+                            {% endif %}
+                        </div>
+                    </div> {# End d-flex #}
+                </div> {# End list-group-item #}
+            {% endfor %}
+        </div> {# End list-group #}
+    {% else %}
+        <p class="text-muted fst-italic">You have no notifications.</p>
+    {% endif %}
+</div>
+{% endblock %}

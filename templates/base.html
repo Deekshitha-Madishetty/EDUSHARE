@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Optional: Add Bootstrap Icons CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Link your custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>EduShare - {% block title %}Home{% endblock %}</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='images/edushare pic.png') }}" alt="EduShare Logo" width="30" height="30" class="d-inline-block align-text-top me-2">
+                EduShare
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'browse_books' %}active{% endif %}" href="{{ url_for('browse_books') }}">Browse Books</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'browse_donations' %}active{% endif %}" href="{{ url_for('browse_donations') }}">Browse Donations</a>
+                    </li>
+                </ul>
+
+                <!-- Right Aligned Nav Items -->
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    {% if current_user.is_authenticated %}
+                       <li class="nav-item dropdown">
+                           <a class="nav-link dropdown-toggle text-white" href="#" id="navbarUserDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                              <i class="bi bi-person-circle me-1"></i> Welcome, {{ current_user.username }}!
+                           </a>
+                           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                               <li><a class="dropdown-item" href="{{ url_for('add_book') }}">Add/Donate Book</a></li>
+                               <li><a class="dropdown-item" href="{{ url_for('past_books') }}">Past Books</a></li> {# <<<--- LINK ADDED HERE ---<<< #}
+                               {# Add other user-specific links here later, e.g., My Profile, My Listings #}
+                               <li><hr class="dropdown-divider"></li>
+                               <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                           </ul>
+                       </li>
+
+                       <!-- Notifications Link -->
+                       <li class="nav-item ms-2">
+                           <a class="nav-link text-white position-relative" href="{{ url_for('notifications') }}" title="Notifications">
+                               <i class="bi bi-bell-fill fs-5"></i>
+                               {% if unread_notifications > 0 %}
+                               <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6em;">
+                                   {{ unread_notifications }}
+                                   <span class="visually-hidden">unread notifications</span>
+                               </span>
+                               {% endif %}
+                           </a>
+                       </li>
+
+                    {% else %}
+                       <!-- Logged Out Links -->
+                       <li class="nav-item me-2">
+                           <a class="btn btn-sm btn-outline-light" href="{{ url_for('login') }}">Login</a>
+                       </li>
+                       <li class="nav-item">
+                           <a class="btn btn-sm btn-light" href="{{ url_for('register') }}">Sign Up</a>
+                       </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4 mb-5">
+        {# Flash Messages Area #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row">
+                    <div class="col-md-10 offset-md-1 col-lg-8 offset-lg-2">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {# Main Content Block #}
+        {% block content %}
+        {# Specific page content goes here #}
+        {% endblock %}
+    </main>
+
+    <footer class="footer mt-auto py-3 bg-light text-center">
+        <div class="container">
+            <span class="text-muted">© {{ now.year }} EduShare - Sharing Knowledge.</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_pagination %}
+{% block title %}Search Results{% endblock %}
+
+{% block content %}
+    <h2>Search Results for "{{ query }}"</h2>
+    <hr>
+    {# You can include the search form again here if desired #}
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% if books %}
+            {% for book in books %}
+                <div class="col">
+                    <div class="card h-100">
+                        {# --- Card Content - Same as browse_books/donations --- #}
+                        <div class="card-body">
+                             <h5 class="card-title">{{ book.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">by {{ book.author }}</h6>
+                            <p class="card-text">{{ book.description[:100] ~ '...' if book.description and book.description|length > 100 else book.description }}</p>
+                             <p class="card-text">
+                                {% if book.is_donation %}
+                                    <strong class="text-success">Available for Donation</strong>
+                                {% elif book.price and book.price > 0 %}
+                                     <strong>Price: ${{ "%.2f"|format(book.price) }}</strong>
+                                {% else %}
+                                    <strong>Price: Contact Seller</strong>
+                                {% endif %}
+                             </p>
+                             <p class="card-text"><small class="text-muted">Listed by: {{ book.owner.username }} on {{ book.date_posted.strftime('%Y-%m-%d') }}</small></p>
+                        </div>
+                        <div class="card-footer">
+                             <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn btn-primary btn-sm">View Details</a>
+                             {# Conditional Buy/Accept Button based on book.is_donation etc. - Copy logic from browse templates #}
+                             {% if current_user.is_authenticated and current_user.id != book.user_id and book.status == 'available' %}
+                                {% if book.is_donation %}
+                                    <a href="{{ url_for('accept_donation', book_id=book.id) }}" class="btn btn-info btn-sm float-end">Accept Donation (Placeholder)</a>
+                                {% else %}
+                                    <a href="{{ url_for('buy_book', book_id=book.id) }}" class="btn btn-success btn-sm float-end">Buy Now (Placeholder)</a>
+                                {% endif %}
+                            {% elif not current_user.is_authenticated and book.status == 'available' %}
+                                <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm float-end disabled" title="Login to Buy/Accept">Buy/Accept</a>
+                            {% endif %}
+                        </div>
+                         {# --- End Card Content --- #}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col">
+                <p>No books found matching your search criteria "{{ query }}".</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {# Render Pagination Controls #}
+     <div class="mt-4">
+      {{ render_pagination(pagination, 'search') }} {# Use 'search' endpoint #}
+    </div>
+
+{% endblock %}

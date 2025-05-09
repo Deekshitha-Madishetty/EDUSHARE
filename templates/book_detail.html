@@ -1,0 +1,160 @@
+{# templates/book_detail.html #}
+{% extends "base.html" %}
+{% block title %}{{ book.title }}{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+             {# Placeholder for book image display - Add later #}
+             {# <img src="..." class="img-fluid rounded mb-3" alt="Cover for {{ book.title }}"> #}
+
+             <h2 class="display-6">{{ book.title }}</h2>
+             <h4 class="text-muted fw-light mb-3">by {{ book.author }}</h4>
+             <hr>
+
+             {# --- Description --- #}
+             <div class="mb-3">
+                <strong>Description:</strong>
+                {% if book.description %}
+                    <p class="book-description mt-1">{{ book.description | safe }}</p>
+                {% else %}
+                    <p class="text-muted fst-italic mt-1">No description provided.</p>
+                {% endif %}
+             </div>
+             <hr>
+
+             {# --- Status and Price --- #}
+             <div class="mb-3">
+                 <p>
+                    <strong>Status:</strong>
+                    {% if book.status == 'available' %}
+                        {% if book.is_donation %}
+                            <span class="badge bg-success fs-6">Available for Donation</span>
+                        {% else %}
+                            <span class="badge bg-primary fs-6">Available for Sale</span>
+                            {% if book.price and book.price > 0 %}
+                                - <strong>Price: ${{ "%.2f"|format(book.price) }}</strong>
+                            {% else %}
+                                - <span class="text-muted fst-italic">Price not listed</span>
+                            {% endif %}
+                        {% endif %}
+                    {% elif book.status == 'pending' %}
+                        <span class="badge bg-warning fs-6">Pending Transaction</span>
+                    {% elif book.status == 'sold' %}
+                        {% if book.is_donation %}
+                             <span class="badge bg-secondary fs-6">Donation Claimed</span>
+                        {% else %}
+                             <span class="badge bg-secondary fs-6">Sold</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-info fs-6">{{ book.status|capitalize }}</span>
+                    {% endif %}
+                 </p>
+             </div>
+
+             {# --- Listing Details --- #}
+             <div class="mb-3">
+                 <p class="mb-1"><strong>Listed/Donated by:</strong> {{ book.owner.username }}</p>
+                 <p><strong>Date Listed:</strong> {{ book.date_posted.strftime('%B %d, %Y') }}</p>
+             </div>
+
+             {# --- Action Buttons --- #}
+             <div class="mt-4 pt-3 border-top">
+                 {% if current_user.is_authenticated %}
+                    {# --- Owner Actions --- #}
+                    {% if current_user.id == book.user_id %}
+                        <span class="fw-bold me-3">Your Listing Actions:</span>
+                        {% if book.status == 'available' or book.status == 'pending' %} {# Allow edit if available or pending (owner might want to edit before accepting) #}
+                            <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-secondary btn-sm me-2">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                        {% endif %}
+                        <form action="{{ url_for('delete_book', book_id=book.id) }}" method="POST" class="d-inline"
+                              onsubmit="return confirm('Are you sure you want to permanently delete this listing and its transaction history?');">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </form>
+                        {# Owner might also see details of pending requests here, or link to notifications #}
+                        {% if book.status == 'pending' and not my_transaction %} {# A request exists, but not by the owner for their own book #}
+                           <p class="mt-2 fst-italic">You have pending requests for this book. Check your <a href="{{ url_for('notifications') }}">notifications</a> to manage them.</p>
+                        {% endif %}
+
+                    {# --- Actions for Other Logged-in Users --- #}
+                    {% else %} {# Not the owner #}
+                        {% if book.status == 'available' and not my_transaction %}
+                            {# Button to request the book (sale or donation) #}
+                            <form action="{{ url_for('request_book', book_id=book.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-info">
+                                    {% if book.is_donation %}
+                                        Request this Donation
+                                    {% else %}
+                                        Request to Buy
+                                    {% endif %}
+                                </button>
+                            </form>
+                        {% elif my_transaction %}
+                            {# User has an active transaction for this book #}
+                            {% if my_transaction.status == 'pending' %}
+                                <p class="alert alert-info">You have a pending request for this book.</p>
+                                <form action="{{ url_for('cancel_transaction', transaction_id=my_transaction.id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-warning btn-sm">Cancel My Request</button>
+                                </form>
+                            {% elif my_transaction.status == 'accepted' %}
+                                <p class="alert alert-success">
+                                    Your request for "{{ book.title }}" has been accepted by {{ book.owner.username }}!
+                                    {% if my_transaction.seller_contact_info %}
+                                        <br>Please contact them using: <strong>{{ my_transaction.seller_contact_info }}</strong>
+                                    {% else %}
+                                        <br>Contact information will be shared by the owner.
+                                    {% endif %}
+                                </p>
+                                {# Requester does not complete, owner does. So no "complete" button for requester here. #}
+                            {% elif my_transaction.status in ['rejected', 'cancelled'] %}
+                                <p class="alert alert-warning">Your previous request for this book was {{ my_transaction.status }}.</p>
+                                {% if book.status == 'available' %} {# If book became available again, allow new request #}
+                                    <form action="{{ url_for('request_book', book_id=book.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-info">
+                                            {% if book.is_donation %}
+                                                Request this Donation Again
+                                            {% else %}
+                                                Request to Buy Again
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        {% elif book.status == 'pending' %}
+                            <p class="alert alert-warning text-muted fst-italic">This book is currently involved in a pending transaction with another user.</p>
+                        {% elif book.status in ['sold', 'donated'] or book.status == 'completed' %}
+                             <span class="text-muted fst-italic">This book is no longer available.</span>
+                        {% endif %}
+                    {% endif %} {# End owner vs other user check #}
+
+                 {# --- Actions for Logged-out Users --- #}
+                 {% else %} {# Not authenticated #}
+                    {% if book.status == 'available' %}
+                        <a href="{{ url_for('login', next=request.url) }}" class="btn btn-primary">
+                            Login to
+                            {% if book.is_donation %}
+                                Request Donation
+                            {% else %}
+                                Request to Buy
+                            {% endif %}
+                        </a>
+                    {% elif book.status == 'pending' %}
+                        <p class="alert alert-warning text-muted fst-italic">This book is currently involved in a pending transaction.</p>
+                        <a href="{{ url_for('login', next=request.url) }}" class="btn btn-primary">Login to see more details</a>
+                    {% else %}
+                         <span class="text-muted fst-italic">This book is no longer available.</span>
+                    {% endif %}
+                 {% endif %} {# End authenticated check #}
+
+                 {# --- Always show Back button --- #}
+                 <a href="{{ url_for('index') }}" class="btn btn-outline-secondary float-end">Back to Home</a>
+            </div> {# End Action Buttons Div #}
+
+        </div> {# End col-md-8 #}
+    </div> {# End row #}
+
+{% endblock %}

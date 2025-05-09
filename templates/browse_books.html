@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import render_pagination %} {# Make sure templates/_macros.html exists #}
+
+{% block title %}Browse Books for Sale{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Books Available for Sale</h2>
+        {# Optional: Add sort/filter options here later #}
+    </div>
+
+    {# --- START: Add Search Bar --- #}
+    <form method="GET" action="{{ url_for('browse_books') }}" class="mb-4">
+        <div class="input-group">
+            <input type="search" class="form-control" placeholder="Search by Title or Author..." name="q" value="{{ request.args.get('q', '') }}">
+            <button class="btn btn-outline-secondary" type="submit">
+                <i class="bi bi-search"></i> Search {# Optional: Use a search icon #}
+            </button>
+        </div>
+    </form>
+    {# --- END: Add Search Bar --- #}
+
+    <hr>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {# Check if the books variable passed from the route actually has items #}
+        {% if books %}
+            {% for book in books %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm"> {# Added shadow for slight visual improvement #}
+                        {# Placeholder for image - Add later if implementing uploads #}
+                        {# <img src="{{ url_for('static', filename='book_images/' + book.image_file) }}" class="card-img-top" alt="{{ book.title }}"> #}
+                        <div class="card-body d-flex flex-column"> {# Use flexbox for alignment #}
+                            <h5 class="card-title">{{ book.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">by {{ book.author }}</h6>
+                            <p class="card-text flex-grow-1"> {# Make description take available space #}
+                                {{ book.description[:120] ~ '...' if book.description and book.description|length > 120 else book.description or 'No description provided.' }} {# Truncate description, provide fallback #}
+                            </p>
+                             <p class="card-text mt-auto"> {# Push price/owner info down #}
+                                <strong>Price:</strong>
+                                {% if book.price and book.price > 0 %}
+                                    ${{ "%.2f"|format(book.price) }} {# Format price #}
+                                {% else %}
+                                    Contact Seller {# Handle 0/null price for sale items #}
+                                {% endif %}
+                             </p>
+                             <p class="card-text"><small class="text-muted">Listed by: {{ book.owner.username }} on {{ book.date_posted.strftime('%Y-%m-%d') }}</small></p>
+                        </div>
+                        <div class="card-footer bg-light"> {# Lighter footer background #}
+                             <div class="d-flex justify-content-between align-items-center">
+                                 <a href="{{ url_for('book_detail', book_id=book.id) }}" class="btn btn-outline-primary btn-sm">View Details</a>
+                                 {# Conditional Buy Button #}
+                                 {% if current_user.is_authenticated %}
+                                    {% if current_user.id != book.user_id %}
+                                        {# Use a form for POST request, even for simple actions #}
+                                        <form action="{{ url_for('request_book', book_id=book.id) }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-primary">Request Purchase</button> {# Changed text #}
+                                        </form>
+                                    {% else %}
+                                        {# Optionally show 'Your Listing' instead of buy button #}
+                                        <span class="badge bg-info text-dark">Your Listing</span>
+                                    {% endif %}
+                                 {% else %}
+                                    {# User not logged in, link to login - Keep page args for redirect #}
+                                    {# --- START: Update Login Link Args --- #}
+                                    <a href="{{ url_for('login', next=url_for('browse_books', page=pagination.page, q=request.args.get('q', ''))) }}" class="btn btn-outline-success btn-sm">Login to Request</a>
+                                    {# --- END: Update Login Link Args --- #}
+                                 {% endif %}
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            {# This part shows if the 'books' list passed to the template is empty #}
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    {# --- START: Update 'No books' message --- #}
+                    {% if request.args.get('q') %}
+                        No books found matching your search term "{{ request.args.get('q') }}". Try a different search.
+                    {% else %}
+                        No books are currently listed for sale.
+                    {% endif %}
+                    {# --- END: Update 'No books' message --- #}
+
+                     {% if current_user.is_authenticated %}
+                         Why not <a href="{{ url_for('add_book') }}" class="alert-link">add one</a>?
+                     {% else %}
+                          <a href="{{ url_for('login') }}" class="alert-link">Log in</a> or <a href="{{ url_for('register') }}" class="alert-link">sign up</a> to list a book.
+                     {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div> {# End row #}
+
+    {# Render Pagination Controls (only if there's more than one page) #}
+    {% if pagination and pagination.pages > 1 %}
+    <div class="mt-4 d-flex justify-content-center">
+      {# REQUIRED CORRECTION FOR CALLING THE MACRO #}
+      {{ render_pagination(pagination, 'browse_books', query_params=request.args.to_dict()) }}
+    </div>
+    {% endif %}
+
+{% endblock %}

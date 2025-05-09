@@ -1,0 +1,20 @@
+{% extends "base.html" %} {# Inherit from base.html #}
+
+{% block title %}Home{% endblock %} {# Set the page title #}
+
+{% block content %} {# Fill the content block #}
+    <div class="px-4 py-5 my-5 text-center">
+        <img class="d-block mx-auto mb-4" src="{{ url_for('static', filename='images/edushare pic.png') }}" alt="EduShare Platform" width="150"> {# Adjust width/alt text as needed #}
+        <h1 class="display-5 fw-bold">Welcome to EduShare!</h1>
+        <div class="col-lg-6 mx-auto">
+            <p class="lead mb-4">Your platform to buy, sell, and donate educational books. Find the resources you need or give your old books a new life.</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a href="{{ url_for('browse_books') }}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Browse Books for Sale</a>
+                <a href="{{ url_for('browse_donations') }}" type="button" class="btn btn-outline-secondary btn-lg px-4">Browse Donations</a>
+            </div>
+        </div>
+    </div>
+
+    {# Optional: Add sections for recently added books or featured items here #}
+
+{% endblock %}
