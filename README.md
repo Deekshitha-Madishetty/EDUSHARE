@@ -30,7 +30,7 @@ By promoting resource reuse, EduShare aims to reduce financial burdens and envir
 
 ### Frontend
 - **HTML/CSS**: Responsive user interface
-- **JavaScript**: Interactive elements
+
 
 ### Database
 - **SQLite**: Lightweight database for storing book listings and user data
